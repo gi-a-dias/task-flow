@@ -32,7 +32,11 @@ export function Sidebar() {
             <NavLink
               key={item.caminho}
               to={item.caminho}
-              className={({ isActive }) => (isActive ? "sidebar__link sidebar__link--active" : "sidebar__link")}
+              className={({ isActive }) =>
+                isActive
+                  ? "sidebar__link sidebar__link-active"
+                  : "sidebar__link"
+              }
             >
               <Icone size={19} />
               <span>{item.titulo}</span>
