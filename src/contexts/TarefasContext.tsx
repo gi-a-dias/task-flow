@@ -4,6 +4,7 @@ import {
   criarTarefa,
   excluirTarefa,
   listarTarefas,
+  alterarTarefa,
 } from "../services/tarefaService";
 import type { Tarefa } from "../types/Tarefa";
 type NovaTarefa = Omit<Tarefa, "_id">;
@@ -12,6 +13,8 @@ type TarefasContextType = {
   carregando: boolean;
   erro: string;
   adicionarTarefa: (novaTarefa: NovaTarefa) => Promise<void>;
+  atualizarTarefa: (tarefa: Tarefa) => Promise<void>;
+  alternarConclusao: (tarefa: Tarefa) => Promise<void>;
   removerTarefa: (id: string) => Promise<void>;
 };
 const TarefasContext = createContext<TarefasContextType | null>(null);
@@ -47,6 +50,41 @@ export function TarefasProvider({ children }: Readonly<TarefasProviderProps>) {
       throw new Error("Não foi possível criar a tarefa.");
     }
   }
+  async function persistirAlteracao(tarefa: Tarefa) {
+    if (!tarefa._id) {
+      throw new Error("Não foi possível identificar a tarefa para atualização.");
+    }
+
+    const { _id, ...dadosTarefa } = tarefa;
+    const tarefaAtualizada = await alterarTarefa(_id, dadosTarefa);
+    setTarefas((tarefasAtuais) =>
+      tarefasAtuais.map((tarefaAtual) =>
+        tarefaAtual._id === tarefaAtualizada._id
+          ? tarefaAtualizada
+          : tarefaAtual,
+      ),
+    );
+  }
+  async function atualizarTarefa(tarefa: Tarefa) {
+    try {
+      setErro("");
+      await persistirAlteracao(tarefa);
+    } catch {
+      setErro("Não foi possível atualizar a tarefa.");
+      throw new Error("Não foi possível atualizar a tarefa.");
+    }
+  }
+  async function alternarConclusao(tarefa: Tarefa) {
+    try {
+      setErro("");
+      await persistirAlteracao({
+        ...tarefa,
+        concluida: !tarefa.concluida,
+      });
+    } catch {
+      setErro("Não foi possível alterar a conclusão da tarefa.");
+    }
+  }
   async function removerTarefa(id: string) {
     try {
       setErro("");
@@ -65,6 +103,8 @@ export function TarefasProvider({ children }: Readonly<TarefasProviderProps>) {
         carregando,
         erro,
         adicionarTarefa,
+        atualizarTarefa,
+        alternarConclusao,
         removerTarefa,
       }}
     >

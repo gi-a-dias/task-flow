@@ -6,15 +6,24 @@ import "./TaskModal.css";
 type NovaTarefa = Omit<Tarefa, "_id">;
 type TaskModalProps = {
   aberto: boolean;
+  tarefa: Tarefa | null;
   aoFechar: () => void;
 };
-export function TaskModal({ aberto, aoFechar }: Readonly<TaskModalProps>) {
-  const { adicionarTarefa } = useTarefas();
+export function TaskModal({
+  aberto,
+  tarefa,
+  aoFechar,
+}: Readonly<TaskModalProps>) {
+  const { adicionarTarefa, atualizarTarefa } = useTarefas();
   if (!aberto) {
     return null;
   }
   async function salvarTarefa(novaTarefa: NovaTarefa) {
-    await adicionarTarefa(novaTarefa);
+    if (tarefa) {
+      await atualizarTarefa({ ...tarefa, ...novaTarefa });
+    } else {
+      await adicionarTarefa(novaTarefa);
+    }
     aoFechar();
   }
   return (
@@ -23,7 +32,7 @@ export function TaskModal({ aberto, aoFechar }: Readonly<TaskModalProps>) {
         className="task-modal__content"
         role="dialog"
         aria-modal="true"
-        aria-label="Nova tarefa"
+        aria-label={tarefa ? "Editar tarefa" : "Nova tarefa"}
       >
         <button
           className="task-modal__close"
@@ -33,7 +42,12 @@ export function TaskModal({ aberto, aoFechar }: Readonly<TaskModalProps>) {
         >
           <X size={20} />
         </button>
-        <TaskForm aoSalvar={salvarTarefa} aoCancelar={aoFechar} />
+        <TaskForm
+          key={tarefa?._id ?? "nova"}
+          tarefa={tarefa}
+          aoSalvar={salvarTarefa}
+          aoCancelar={aoFechar}
+        />
       </div>
     </div>
   );

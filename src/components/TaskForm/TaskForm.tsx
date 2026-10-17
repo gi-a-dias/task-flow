@@ -2,7 +2,11 @@ import { useState } from "react";
 import type { Prioridade, Tarefa } from "../../types/Tarefa";
 import "./TaskForm.css";
 type NovaTarefa = Omit<Tarefa, "_id">;
-type TaskFormProps = { aoSalvar: (tarefa: NovaTarefa) => Promise<void>; aoCancelar: () => void };
+type TaskFormProps = {
+  tarefa: Tarefa | null;
+  aoSalvar: (tarefa: NovaTarefa) => Promise<void>;
+  aoCancelar: () => void;
+};
 const estadoInicial: NovaTarefa = {
   titulo: "",
   descricao: "",
@@ -11,9 +15,20 @@ const estadoInicial: NovaTarefa = {
   projeto: "",
   concluida: false,
 };
-export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
-  const [formulario, setFormulario] = useState<NovaTarefa>(estadoInicial);
+export function TaskForm({
+  tarefa,
+  aoSalvar,
+  aoCancelar,
+}: Readonly<TaskFormProps>) {
+  const [formulario, setFormulario] = useState<NovaTarefa>(() => {
+    if (!tarefa) {
+      return estadoInicial;
+    }
+    const { _id, ...dadosTarefa } = tarefa;
+    return dadosTarefa;
+  });
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
   function alterarCampo(campo: keyof NovaTarefa, valor: string | boolean) {
     setFormulario((estadoAtual) => ({
       ...estadoAtual,
@@ -24,15 +39,22 @@ export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
     evento.preventDefault();
     try {
       setSalvando(true);
+      setErro("");
       await aoSalvar(formulario);
       setFormulario(estadoInicial);
+    } catch (erroEnvio) {
+      setErro(
+        erroEnvio instanceof Error
+          ? erroEnvio.message
+          : "Não foi possível salvar a tarefa.",
+      );
     } finally {
       setSalvando(false);
     }
   }
   return (
     <form className="task-form" onSubmit={enviarFormulario}>
-      <h2>Nova tarefa</h2>
+      <h2>{tarefa ? "Editar tarefa" : "Nova tarefa"}</h2>
       <label>
         <span>Título</span>
         <input
@@ -76,12 +98,21 @@ export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
           placeholder="Ex.: Projeto Atlas"
         />
       </label>
+      {erro && (
+        <p className="task-form__error" role="alert">
+          {erro}
+        </p>
+      )}
       <div className="task-form__actions">
         <button type="button" onClick={aoCancelar}>
           Cancelar
         </button>
         <button type="submit" disabled={salvando}>
-          {salvando ? "Salvando..." : "Criar tarefa"}
+          {salvando
+            ? "Salvando..."
+            : tarefa
+              ? "Salvar alterações"
+              : "Criar tarefa"}
         </button>
       </div>
     </form>

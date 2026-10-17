@@ -18,7 +18,7 @@ O projeto foi estruturado para permitir o desenvolvimento dos seguintes conceito
 - sincronização com serviços externos por meio de `useEffect`;
 - formulários controlados;
 - comunicação HTTP com Axios;
-- operações REST com `GET`, `POST` e `DELETE`;
+- operações REST com `GET`, `POST`, `PUT` e `DELETE`;
 - separação entre interface e camada de acesso aos dados.
 
 ## Tecnologias utilizadas
@@ -48,10 +48,7 @@ TaskFlow
 │   └── Página atual
 │
 ├── Pages
-│   ├── Today
-│   ├── Upcoming
-│   ├── Tasks
-│   └── Completed
+│   └── Tasks
 │
 ├── TaskList
 │   └── TaskCard
@@ -138,6 +135,7 @@ CrudCrud
 |---|---|---|
 | Listar tarefas | `GET` | `/tarefas` |
 | Criar tarefa | `POST` | `/tarefas` |
+| Atualizar tarefa ou conclusão | `PUT` | `/tarefas/:id` |
 | Excluir tarefa | `DELETE` | `/tarefas/:id` |
 
 ## Configuração do endpoint
@@ -264,6 +262,23 @@ setTarefas()
 
 O `TaskCard` não acessa diretamente a API. Ele apenas comunica a intenção de excluir uma tarefa. A operação é coordenada pela página `Tasks` e executada pela camada de serviço.
 
+## Edição e conclusão
+
+O mesmo `TaskModal` e `TaskForm` atendem à criação e à edição. Na edição, o formulário recebe os dados atuais da tarefa e o serviço atualiza o registro existente com `PUT /tarefas/:id`, preservando seu `_id`. O `TarefasContext` substitui a tarefa atualizada no array compartilhado.
+
+O botão de conclusão do `TaskCard` alterna a propriedade `concluida` e utiliza a mesma operação de atualização. Assim, uma tarefa pode ser concluída e reaberta sem criar outro registro.
+
+## Visualizações compartilhadas
+
+As rotas Hoje, Próximas, Tarefas e Concluídas reutilizam `Tasks.tsx` e derivam suas listas do array único mantido pelo contexto:
+
+- Hoje: tarefas não concluídas com prazo igual à data local atual;
+- Próximas: tarefas não concluídas com prazo posterior à data atual;
+- Tarefas: todas as tarefas não concluídas;
+- Concluídas: tarefas com `concluida` igual a `true`.
+
+As listas são calculadas com `filter`; não são mantidas cópias independentes por página.
+
 ## Estrutura de pastas
 
 ```text
@@ -277,10 +292,7 @@ src/
 │   └── TaskList/
 │
 ├── pages/
-│   ├── Completed/
-│   ├── Tasks/
-│   ├── Today/
-│   └── Upcoming/
+│   └── Tasks/
 │
 ├── services/
 │   └── tarefaService.ts
