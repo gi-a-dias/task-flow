@@ -1,8 +1,15 @@
 import { useState } from "react";
 import type { Prioridade, Tarefa } from "../../types/Tarefa";
 import "./TaskForm.css";
+
 type NovaTarefa = Omit<Tarefa, "_id">;
-type TaskFormProps = { aoSalvar: (tarefa: NovaTarefa) => Promise<void>; aoCancelar: () => void };
+
+type TaskFormProps = {
+  tarefaInicial?: Tarefa | null;
+  aoSalvar: (tarefa: NovaTarefa) => Promise<void>;
+  aoCancelar: () => void;
+};
+
 const estadoInicial: NovaTarefa = {
   titulo: "",
   descricao: "",
@@ -11,28 +18,58 @@ const estadoInicial: NovaTarefa = {
   projeto: "",
   concluida: false,
 };
-export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
-  const [formulario, setFormulario] = useState<NovaTarefa>(estadoInicial);
+
+function montarEstadoInicial(tarefa?: Tarefa | null): NovaTarefa {
+  if (!tarefa) {
+    return estadoInicial;
+  }
+
+  return {
+    titulo: tarefa.titulo,
+    descricao: tarefa.descricao,
+    data: tarefa.data,
+    prioridade: tarefa.prioridade,
+    projeto: tarefa.projeto,
+    concluida: tarefa.concluida,
+  };
+}
+
+export function TaskForm({
+  tarefaInicial,
+  aoSalvar,
+  aoCancelar,
+}: Readonly<TaskFormProps>) {
+  const [formulario, setFormulario] = useState<NovaTarefa>(() =>
+    montarEstadoInicial(tarefaInicial),
+  );
   const [salvando, setSalvando] = useState(false);
+
+  const editando = Boolean(tarefaInicial);
+
   function alterarCampo(campo: keyof NovaTarefa, valor: string | boolean) {
     setFormulario((estadoAtual) => ({
       ...estadoAtual,
       [campo]: valor,
     }));
   }
+
   async function enviarFormulario(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+
     try {
       setSalvando(true);
       await aoSalvar(formulario);
-      setFormulario(estadoInicial);
+    } catch {
+      // o erro já foi registrado no contexto; o modal permanece aberto
     } finally {
       setSalvando(false);
     }
   }
+
   return (
     <form className="task-form" onSubmit={enviarFormulario}>
-      <h2>Nova tarefa</h2>
+      <h2>{editando ? "Editar tarefa" : "Nova tarefa"}</h2>
+
       <label>
         <span>Título</span>
         <input
@@ -43,6 +80,7 @@ export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
           placeholder="Ex.: Revisar proposta comercial"
         />
       </label>
+
       <label>
         <span>Descrição</span>
         <textarea
@@ -53,21 +91,30 @@ export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
           placeholder="Adicione contexto ou observações"
         />
       </label>
+
       <label>
         <span>Prazo</span>
-        <input type="date" value={formulario.data} onChange={(evento) => alterarCampo("data", evento.target.value)} />
+        <input
+          type="date"
+          value={formulario.data}
+          onChange={(evento) => alterarCampo("data", evento.target.value)}
+        />
       </label>
+
       <label>
         <span>Prioridade</span>
         <select
           value={formulario.prioridade}
-          onChange={(evento) => alterarCampo("prioridade", evento.target.value as Prioridade)}
+          onChange={(evento) =>
+            alterarCampo("prioridade", evento.target.value as Prioridade)
+          }
         >
           <option value="high">Alta</option>
           <option value="medium">Média</option>
           <option value="low">Baixa</option>
         </select>
       </label>
+
       <label>
         <span>Projeto</span>
         <input
@@ -76,12 +123,17 @@ export function TaskForm({ aoSalvar, aoCancelar }: Readonly<TaskFormProps>) {
           placeholder="Ex.: Projeto Atlas"
         />
       </label>
+
       <div className="task-form__actions">
         <button type="button" onClick={aoCancelar}>
           Cancelar
         </button>
         <button type="submit" disabled={salvando}>
-          {salvando ? "Salvando..." : "Criar tarefa"}
+          {salvando
+            ? "Salvando..."
+            : editando
+              ? "Salvar alterações"
+              : "Criar tarefa"}
         </button>
       </div>
     </form>
